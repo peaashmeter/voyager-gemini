@@ -1,21 +1,21 @@
 from voyager.prompts import load_prompt
 from voyager.utils.json_utils import fix_and_parse_json
-from langchain.chat_models import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage, SystemMessage
 
 
 class CriticAgent:
     def __init__(
         self,
-        model_name="gpt-3.5-turbo",
+        model_name="gemini-pro",
         temperature=0,
         request_timout=120,
         mode="auto",
     ):
-        self.llm = ChatOpenAI(
-            model_name=model_name,
+        self.llm = ChatGoogleGenerativeAI(
+            model=model_name,
             temperature=temperature,
-            request_timeout=request_timout,
+            convert_system_message_to_human=True
         )
         assert mode in ["auto", "manual"]
         self.mode = mode

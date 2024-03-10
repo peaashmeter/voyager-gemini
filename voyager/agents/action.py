@@ -3,7 +3,7 @@ import time
 
 import voyager.utils as U
 from javascript import require
-from langchain.chat_models import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import SystemMessagePromptTemplate
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
@@ -14,7 +14,7 @@ from voyager.control_primitives_context import load_control_primitives_context
 class ActionAgent:
     def __init__(
         self,
-        model_name="gpt-3.5-turbo",
+        model_name="gemini-pro",
         temperature=0,
         request_timout=120,
         ckpt_dir="ckpt",
@@ -27,14 +27,16 @@ class ActionAgent:
         self.execution_error = execution_error
         U.f_mkdir(f"{ckpt_dir}/action")
         if resume:
-            print(f"\033[32mLoading Action Agent from {ckpt_dir}/action\033[0m")
-            self.chest_memory = U.load_json(f"{ckpt_dir}/action/chest_memory.json")
+            print(
+                f"\033[32mLoading Action Agent from {ckpt_dir}/action\033[0m")
+            self.chest_memory = U.load_json(
+                f"{ckpt_dir}/action/chest_memory.json")
         else:
             self.chest_memory = {}
-        self.llm = ChatOpenAI(
-            model_name=model_name,
+        self.llm = ChatGoogleGenerativeAI(
+            model=model_name,
             temperature=temperature,
-            request_timeout=request_timout,
+            convert_system_message_to_human=True
         )
 
     def update_chest_memory(self, chests):
@@ -49,9 +51,11 @@ class ActionAgent:
                     self.chest_memory.pop(position)
             else:
                 if chest != "Invalid":
-                    print(f"\033[32mAction Agent saving chest {position}: {chest}\033[0m")
+                    print(
+                        f"\033[32mAction Agent saving chest {position}: {chest}\033[0m")
                     self.chest_memory[position] = chest
-        U.dump_json(self.chest_memory, f"{self.ckpt_dir}/action/chest_memory.json")
+        U.dump_json(self.chest_memory,
+                    f"{self.ckpt_dir}/action/chest_memory.json")
 
     def render_chest_observation(self):
         chests = []
@@ -83,12 +87,13 @@ class ActionAgent:
             "smeltItem",
             "killMob",
         ]
-        if not self.llm.model_name == "gpt-3.5-turbo":
-            base_skills += [
-                "useChest",
-                "mineflayer",
-            ]
-        programs = "\n\n".join(load_control_primitives_context(base_skills) + skills)
+
+        base_skills += [
+            "useChest",
+            "mineflayer",
+        ]
+        programs = "\n\n".join(
+            load_control_primitives_context(base_skills) + skills)
         response_format = load_prompt("action_response_format")
         system_message_prompt = SystemMessagePromptTemplate.from_template(
             system_template
@@ -208,7 +213,8 @@ class ActionAgent:
                 babel = require("@babel/core")
                 babel_generator = require("@babel/generator").default
 
-                code_pattern = re.compile(r"```(?:javascript|js)(.*?)```", re.DOTALL)
+                code_pattern = re.compile(
+                    r"```(?:javascript|js)(.*?)```", re.DOTALL)
                 code = "\n".join(code_pattern.findall(message.content))
                 parsed = babel.parse(code)
                 functions = []
@@ -242,7 +248,8 @@ class ActionAgent:
                     len(main_function["params"]) == 1
                     and main_function["params"][0].name == "bot"
                 ), f"Main function {main_function['name']} must take a single argument named 'bot'"
-                program_code = "\n\n".join(function["body"] for function in functions)
+                program_code = "\n\n".join(
+                    function["body"] for function in functions)
                 exec_code = f"await {main_function['name']}(bot);"
                 return {
                     "program_code": program_code,
